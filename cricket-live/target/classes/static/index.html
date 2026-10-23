@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CricketLive</title>
+<style>
+  :root {
+    --bg: #f3f6f4;
+    --card: #ffffff;
+    --text: #15231b;
+    --muted: #5d6e64;
+    --line: #dde6e0;
+    --accent: #0f7a4a;
+    --accent-soft: #e3f3ea;
+    --chip: #e9eeeb;
+    --live: #d93636;
+    --warn: #b7791f;
+    --blue: #2f6fd6;
+    --purple: #7b3fb3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1512;
+      --card: #15201b;
+      --text: #e6efe9;
+      --muted: #90a499;
+      --line: #25362d;
+      --accent: #3cc784;
+      --accent-soft: #163a2a;
+      --chip: #22322a;
+      --live: #ff5d5d;
+      --warn: #e0a43a;
+      --blue: #5a95f0;
+      --purple: #a778dd;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  h2, h3 { margin: 0; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 15px; margin-bottom: 10px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  /* top bar */
+  .topbar {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 10px 20px;
+    background: var(--card); border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+  .brand i {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff7b7b, #b31217);
+  }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button {
+    border: 0; background: none; padding: 6px 12px; border-radius: 8px; color: var(--muted); font-weight: 600;
+  }
+  .tabs button.active { background: var(--accent-soft); color: var(--accent); }
+  .conn { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .conn.up i { background: var(--accent); }
+
+  /* layout */
+  .layout {
+    display: grid; grid-template-columns: 340px 1fr; gap: 20px;
+    max-width: 1280px; margin: 20px auto; padding: 0 16px;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .between { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
+
+  /* sidebar */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filters button {
+    border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 13px;
+  }
+  .filters button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .mcard {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+  }
+  .mcard:hover { border-color: var(--accent); }
+  .mcard.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .mtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .trow { display: flex; justify-content: space-between; padding: 2px 0; }
+  .trow small { color: var(--muted); font-weight: 400; }
+  .result { margin-top: 6px; color: var(--accent); font-weight: 600; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted);
+  }
+  .chip.live { background: var(--live); color: #fff; }
+  .chip.live i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.2s infinite; }
+  .chip.done { background: var(--accent-soft); color: var(--accent); }
+  @keyframes pulse { 50% { opacity: .25; } }
+
+  details.create summary { cursor: pointer; font-weight: 600; }
+  form.create { display: grid; gap: 10px; margin-top: 12px; }
+  form.create label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  input, select {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; width: 100%;
+  }
+  .btn {
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 8px 14px; font-weight: 600;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .check { display: flex !important; align-items: center; gap: 8px; }
+  .check input { width: auto; }
+
+  ol.board { margin: 0; padding-left: 20px; }
+  ol.board li { padding: 3px 0; }
+  ol.board b { float: right; }
+
+  /* scoreboard */
+  .banner {
+    margin: 12px 0 0; padding: 10px 12px; border-radius: 8px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 700;
+  }
+  .innings-tabs { display: flex; gap: 6px; margin: 14px 0 4px; }
+  .innings-tabs button {
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 4px 12px; font-size: 13px;
+  }
+  .innings-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+  .bigscore { font-size: 46px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+  .bigscore small { font-size: 18px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .need { margin-top: 6px; color: var(--warn); font-weight: 600; }
+  .stats { display: flex; gap: 22px; }
+  .stats div { display: grid; }
+  .stats span { font-size: 12px; color: var(--muted); }
+  .stats b { font-size: 20px; }
+  .balls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; min-height: 30px; }
+  .b {
+    display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 7px;
+    border-radius: 15px; font-size: 13px; font-weight: 700; background: var(--chip);
+  }
+  .b-4 { background: var(--blue); color: #fff; }
+  .b-6 { background: var(--purple); color: #fff; }
+  .b-w { background: var(--live); color: #fff; }
+  .b-x { background: var(--warn); color: #fff; }
+
+  .controls { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 8px; margin-top: 10px; }
+  .keys button {
+    border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 10px 0; font-weight: 700;
+  }
+  .keys button:hover { border-color: var(--accent); }
+  .keys button:disabled { opacity: .5; cursor: wait; }
+  .switch { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+
+  .scroll { overflow-x: auto; }
+  table.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tbl th, .tbl td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .tbl tr:last-child td { border-bottom: 0; }
+
+  ul.comm { list-style: none; margin: 0; padding: 0; }
+  ul.comm li { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  ul.comm li:last-child { border-bottom: 0; }
+  ul.comm .ov { width: 38px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .perf { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .perf { grid-template-columns: 1fr; } }
+  .perf div.row { display: flex; justify-content: space-between; padding: 4px 0; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar select, .toolbar input { width: auto; min-width: 180px; }
+  .profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 12px; }
+  .profile-grid div { background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .profile-grid span { display: block; font-size: 12px; color: var(--muted); }
+  .profile-grid b { font-size: 18px; }
+  .players-wrap { max-width: 1000px; margin: 20px auto; padding: 0 16px; }
+  .players-wrap tr.pick { cursor: pointer; }
+  .players-wrap tr.pick:hover td { background: var(--accent-soft); }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    background: #222; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: 90vw;
+  }
+  #toast.show { opacity: 1; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><i></i> CricketLive</div>
+  <nav class="tabs">
+    <button class="active" data-view="matches">Matches</button>
+    <button data-view="players">Players</button>
+  </nav>
+  <div class="conn" id="conn"><i></i><span>connecting…</span></div>
+</header>
+
+<main>
+  <section id="view-matches" class="layout">
+    <aside>
+      <div class="filters" id="filters">
+        <button data-filter="ALL" class="active">All</button>
+        <button data-filter="LIVE">Live</button>
+        <button data-filter="UPCOMING">Upcoming</button>
+        <button data-filter="COMPLETED">Finished</button>
+      </div>
+      <div id="matchList"></div>
+
+      <div class="panel">
+        <details class="create">
+          <summary>+ New match</summary>
+          <form class="create" id="createForm">
+            <label>Team 1 (bats first)<select id="team1" required></select></label>
+            <label>Team 2<select id="team2" required></select></label>
+            <label>Venue<input id="venue" required maxlength="80" value="Local Ground"></label>
+            <label>Overs per side<input id="overs" type="number" min="1" max="50" value="5" required></label>
+            <label class="check"><input id="simulated" type="checkbox" checked> Auto-play with the simulated feed</label>
+            <button class="btn primary" type="submit">Create match</button>
+          </form>
+        </details>
+      </div>
+
+      <div class="panel">
+        <h3>Top run scorers</h3>
+        <ol class="board" id="topScorers"><li class="muted">No data yet</li></ol>
+      </div>
+      <div class="panel">
+        <h3>Top wicket takers</h3>
+        <ol class="board" id="topBowlers"><li class="muted">No data yet</li></ol>
+      </div>
+    </aside>
+
+    <section id="board"></section>
+  </section>
+
+  <section id="view-players" class="players-wrap" hidden>
+    <div class="panel">
+      <div class="toolbar">
+        <select id="playerTeam"></select>
+        <input id="playerSearch" type="search" placeholder="Search players">
+      </div>
+      <div class="scroll">
+        <table class="tbl">
+          <thead><tr><th>Player</th><th>Team</th><th>Role</th></tr></thead>
+          <tbody id="playerRows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel" id="playerProfile" hidden></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // what each scoring button sends to POST /api/matches/{id}/balls
+  const BALLS = {
+    '0':   { runs: 0 },
+    '1':   { runs: 1 },
+    '2':   { runs: 2 },
+    '3':   { runs: 3 },
+    '4':   { runs: 4 },
+    '6':   { runs: 6 },
+    'W':   { runs: 0, wicket: true },
+    'Wd':  { runs: 0, extraType: 'WIDE' },
+    'Nb':  { runs: 0, extraType: 'NO_BALL' },
+    'Bye': { runs: 1, extraType: 'BYE' },
+    'LB':  { runs: 1, extraType: 'LEG_BYE' }
+  };
+
+  const state = {
+    matches: [],
+    filter: 'ALL',
+    selectedId: null,
+    board: null,
+    summary: null,
+    activeInnings: null,
+    pickedInnings: false,
+    teams: []
+  };
+
+  let stream = null;
+  let streamWasDown = false;
+  let scoring = false;
+
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- helpers ----------
+
+  let toastTimer = null;
+  function toast(message) {
+    const el = $('toast');
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  async function api(path, options = {}) {
+    const res = await fetch('/api' + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    if (!res.ok) {
+      let message = res.statusText || 'Request failed';
+      try { message = (await res.json()).message || message; } catch (e) { /* not json */ }
+      throw new Error(message);
+    }
+    return res.status === 204 ? null : res.json();
+  }
+
+  function setConnection(up) {
+    const el = $('conn');
+    el.classList.toggle('up', up);
+    el.querySelector('span').textContent = up ? 'Live updates on' : 'Reconnecting…';
+  }
+
+  // ---------- match list ----------
+
+  function scoreFor(match, team) {
+    const innings = match.innings.find(i => i.team === team);
+    return innings
+      ? `<b>${innings.runs}/${innings.wickets}</b> <small>(${innings.overs})</small>`
+      : '<span class="muted">–</span>';
+  }
+
+  function cardHtml(m) {
+    const tag = m.status === 'LIVE'
+      ? '<span class="chip live"><i></i>LIVE</span>'
+      : m.status === 'UPCOMING'
+        ? '<span class="chip">UPCOMING</span>'
+        : '<span class="chip done">FINISHED</span>';
+    return `
+      <div class="mcard ${m.id === state.selectedId ? 'active' : ''}" data-id="${m.id}">
+        <div class="mtop">${tag}<span class="muted small">${m.totalOvers} ov · ${esc(m.venue)}</span></div>
+        <div class="trow"><span>${esc(m.team1)}</span><span>${scoreFor(m, m.team1)}</span></div>
+        <div class="trow"><span>${esc(m.team2)}</span><span>${scoreFor(m, m.team2)}</span></div>
+        ${m.result ? `<div class="small result">${esc(m.result)}</div>` : ''}
+      </div>`;
+  }
+
+  function renderList() {
+    const order = { LIVE: 0, UPCOMING: 1, COMPLETED: 2 };
+    const list = state.matches
+      .filter(m => state.filter === 'ALL' || m.status === state.filter)
+      .sort((a, b) => order[a.status] - order[b.status] || b.id - a.id);
+    $('matchList').innerHTML = list.length
+      ? list.map(cardHtml).join('')
+      : '<div class="panel empty">No matches here yet.</div>';
+  }
+
+  async function loadMatches() {
+    state.matches = await api('/matches?size=50');
+    renderList();
+  }
+
+  // ---------- scoreboard ----------
+
+  function ballClass(ball) {
+    if (ball.wicket) return 'b-w';
+    if (ball.extra !== 'NONE') return 'b-x';
+    if (ball.label === '4') return 'b-4';
+    if (ball.label === '6') return 'b-6';
+    return '';
+  }
+
+  function ballChip(ball) {
+    return `<span class="b ${ballClass(ball)}" title="${esc(ball.commentary)}">${esc(ball.label)}</span>`;
+  }
+
+  function statusChip(status) {
+    if (status === 'LIVE') return '<span class="chip live"><i></i>LIVE</span>';
+    if (status === 'UPCOMING') return '<span class="chip">UPCOMING</span>';
+    return '<span class="chip done">FINISHED</span>';
+  }
+
+  function heroHtml(board, inn) {
+    let chase = '';
+    if (inn.target != null && !inn.completed) {
+      chase = `<div class="need">Need <b>${inn.runsNeeded}</b> from <b>${inn.ballsLeft}</b> balls
+               · required rate ${inn.requiredRate != null ? inn.requiredRate.toFixed(2) : '–'}</div>`;
+    } else if (inn.target != null) {
+      chase = `<div class="muted">Target was ${inn.target}</div>`;
+    }
+    const recent = board.recentBalls.filter(b => b.innings === inn.number).slice(-12);
+    return `
+      <div class="hero">
+        <div>
+          <div class="muted">${esc(inn.battingTeam)} ${inn.completed ? '· innings over' : 'batting'}</div>
+          <div class="bigscore">${inn.runs}/${inn.wickets} <small>(${inn.overs} ov)</small></div>
+          ${chase}
+        </div>
+        <div class="stats">
+          <div><span>Run rate</span><b>${inn.runRate.toFixed(2)}</b></div>
+          <div><span>Extras</span><b>${inn.extras}</b></div>
+        </div>
+      </div>
+      <div class="balls">${recent.map(ballChip).join('')}</div>`;
+  }
+
+  function controlsHtml(board) {
+    if (board.status === 'UPCOMING') {
+      return `<div class="controls"><button class="btn primary" data-act="start">Start match</button></div>`;
+    }
+    if (board.status !== 'LIVE') return '';
+    const keys = Object.keys(BALLS)
+      .map(k => `<button data-ball="${k}" ${scoring ? 'disabled' : ''}>${k}</button>`)
+      .join('');
+    return `
+      <div class="controls">
+        <div class="between">
+          <b>Scorer</b>
+          <label class="switch"><input type="checkbox" data-act="auto" ${board.simulated ? 'checked' : ''}>
+            Auto-play simulated feed</label>
+        </div>
+        <div class="keys">${keys}</div>
+      </div>`;
+  }
+
+  function battingHtml(inn) {
+    const rows = inn.batting.map(r => `
+      <tr>
+        <td>${esc(r.name)}${r.onStrike ? ' *' : ''}<div class="muted small">${esc(r.status)}</div></td>
+        <td><b>${r.runs}</b></td><td>${r.balls}</td><td>${r.fours}</td><td>${r.sixes}</td>
+        <td>${r.strikeRate.toFixed(1)}</td>
+      </tr>`).join('');
+    return `
+      <div class="panel">
+        <h3>Batting · ${esc(inn.battingTeam)}</h3>
+        <div class="scroll"><table class="tbl">
+          <thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+  }
+
+  function bowlingHtml(inn) {
+    const rows = inn.bowling.length ? inn.bowling.map(r => `
+      <tr>
+        <td>${esc(r.name)}${r.bowling ? ' *' : ''}</td>
+        <td>${r.overs}</td><td>${r.runs}</td><td><b>${r.wickets}</b></td><td>${r.economy.toFixed(2)}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="muted">Nobody has bowled yet</td></tr>';
+    return `
+      <div class="panel">
+        <h3>Bowling · ${esc(inn.bowlingTeam)}</h3>
+        <div class="scroll"><table class="tbl">
+          <thead><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+  }
+
+  function commentaryHtml(board) {
+    if (!board.recentBalls.length) return '';
+    const items = board.recentBalls.slice().reverse().map(b => `
+      <li><span class="ov">${esc(b.over)}</span>${ballChip(b)}<span>${esc(b.commentary)}</span></li>`).join('');
+    return `<div class="panel"><h3>Commentary</h3><ul class="comm">${items}</ul></div>`;
+  }
+
+  function summaryHtml(summary) {
+    const list = rows => rows.length
+      ? rows.map(p => `<div class="row"><span>${esc(p.name)} <span class="muted">${esc(p.team)}</span></span><b>${esc(p.figures)}</b></div>`).join('')
+      : '<div class="muted">–</div>';
+    return `
+      <div class="panel">
+        <h3>Match summary</h3>
+        <div class="perf">
+          <div><div class="muted small">Top batters</div>${list(summary.topBatters)}</div>
+          <div><div class="muted small">Top bowlers</div>${list(summary.topBowlers)}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderBoard() {
+    const el = $('board');
+    const board = state.board;
+    if (!board) {
+      el.innerHTML = '<div class="panel empty">Pick a match from the list.</div>';
+      return;
+    }
+    const inn = board.innings.find(i => i.number === state.activeInnings)
+      || board.innings[board.innings.length - 1];
+
+    let html = `
+      <div class="panel">
+        <div class="between">
+          <div>
+            <h2>${esc(board.title)}</h2>
+            <div class="muted small">${esc(board.venue)} · ${board.totalOvers} overs a side</div>
+          </div>
+          ${statusChip(board.status)}
+        </div>
+        ${board.result ? `<div class="banner">${esc(board.result)}</div>` : ''}`;
+
+    if (board.innings.length > 1) {
+      html += `<div class="innings-tabs">${board.innings.map(i =>
+        `<button data-inn="${i.number}" class="${inn && i.number === inn.number ? 'active' : ''}">
+           ${esc(i.battingTeam)} innings</button>`).join('')}</div>`;
+    }
+    html += inn ? heroHtml(board, inn) : '<p class="muted">This match has not started yet.</p>';
+    html += controlsHtml(board) + '</div>';
+
+    if (inn) html += battingHtml(inn) + bowlingHtml(inn);
+    html += commentaryHtml(board);
+    if (state.summary) html += summaryHtml(state.summary);
+    el.innerHTML = html;
+  }
+
+  function defaultInnings(board) {
+    return board.innings.length ? board.innings[board.innings.length - 1].number : null;
+  }
+
+  async function loadSummaryIfFinished() {
+    const board = state.board;
+    if (!board || board.status !== 'COMPLETED' || state.summary) return;
+    try {
+      state.summary = await api(`/matches/${board.matchId}/summary`);
+      renderBoard();
+    } catch (e) { toast(e.message); }
+  }
+
+  async function selectMatch(id) {
+    state.selectedId = id;
+    state.summary = null;
+    state.pickedInnings = false;
+    renderList();
+    try {
+      state.board = await api('/matches/' + id);
+    } catch (e) {
+      toast(e.message);
+      return;
+    }
+    state.activeInnings = defaultInnings(state.board);
+    renderBoard();
+    loadSummaryIfFinished();
+    connectStream();
+  }
+
+  // ---------- live updates (Server-Sent Events) ----------
+
+  function connectStream() {
+    if (stream) stream.close();
+    stream = new EventSource('/api/stream' + (state.selectedId ? '?matchId=' + state.selectedId : ''));
+
+    stream.onopen = async () => {
+      setConnection(true);
+      if (streamWasDown) {            // we missed updates while offline, so reload everything once
+        streamWasDown = false;
+        try {
+          await loadMatches();
+          if (state.selectedId) {
+            state.board = await api('/matches/' + state.selectedId);
+            renderBoard();
+          }
+        } catch (e) { /* the next event will catch us up */ }
+      }
+    };
+    stream.onerror = () => { streamWasDown = true; setConnection(false); };
+
+    stream.addEventListener('card', ev => onCard(JSON.parse(ev.data)));
+    stream.addEventListener('score', ev => onScore(JSON.parse(ev.data)));
+  }
+
+  function onCard(card) {
+    const at = state.matches.findIndex(m => m.id === card.id);
+    if (at >= 0) state.matches[at] = card; else state.matches.push(card);
+    renderList();
+    if (card.status === 'COMPLETED') loadLeaderboards();
+  }
+
+  function onScore(board) {
+    if (board.matchId !== state.selectedId) return;
+    state.board = board;
+    if (!state.pickedInnings) state.activeInnings = defaultInnings(board);
+    renderBoard();
+    loadSummaryIfFinished();
+  }
+
+  // ---------- actions ----------
+
+  async function sendBall(key) {
+    if (scoring || !state.board) return;
+    scoring = true;
+    renderBoard();
+    try {
+      state.board = await api(`/matches/${state.board.matchId}/balls`, {
+        method: 'POST',
+        body: JSON.stringify(BALLS[key])
+      });
+      if (!state.pickedInnings) state.activeInnings = defaultInnings(state.board);
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      scoring = false;
+      renderBoard();
+      loadSummaryIfFinished();
+    }
+  }
+
+  async function startMatch() {
+    try {
+      await api(`/matches/${state.selectedId}/start`, { method: 'POST' });
+      state.board = await api('/matches/' + state.selectedId);
+      state.activeInnings = defaultInnings(state.board);
+      renderBoard();
+    } catch (e) { toast(e.message); }
+  }
+
+  async function toggleAuto(enabled) {
+    try {
+      await api(`/matches/${state.selectedId}/simulation?enabled=${enabled}`, { method: 'PUT' });
+      state.board = await api('/matches/' + state.selectedId);
+      renderBoard();
+    } catch (e) {
+      toast(e.message);
+      renderBoard();
+    }
+  }
+
+  async function createMatch(ev) {
+    ev.preventDefault();
+    const body = {
+      team1Id: Number($('team1').value),
+      team2Id: Number($('team2').value),
+      venue: $('venue').value,
+      totalOvers: Number($('overs').value),
+      simulated: $('simulated').checked
+    };
+    try {
+      const card = await api('/matches', { method: 'POST', body: JSON.stringify(body) });
+      await loadMatches();
+      await selectMatch(card.id);
+      toast('Match created. Press "Start match" when you are ready.');
+    } catch (e) { toast(e.message); }
+  }
+
+  // ---------- leaderboards ----------
+
+  async function loadLeaderboards() {
+    try {
+      const [scorers, bowlers] = await Promise.all([
+        api('/stats/top-scorers?limit=5'),
+        api('/stats/top-wicket-takers?limit=5')
+      ]);
+      const fill = (id, rows) => {
+        $(id).innerHTML = rows.length
+          ? rows.map(r => `<li>${esc(r.name)} <span class="muted">${esc(r.team)}</span><b>${r.value}</b></li>`).join('')
+          : '<li class="muted">No data yet</li>';
+      };
+      fill('topScorers', scorers);
+      fill('topBowlers', bowlers);
+    } catch (e) { /* leaderboards are optional */ }
+  }
+
+  // ---------- players view ----------
+
+  async function loadPlayers() {
+    const team = $('playerTeam').value;
+    const q = $('playerSearch').value.trim();
+    const params = new URLSearchParams();
+    if (team) params.set('teamId', team);
+    if (q) params.set('q', q);
+    try {
+      const players = await api('/players?' + params);
+      $('playerRows').innerHTML = players.map(p => `
+        <tr class="pick" data-player="${p.id}">
+          <td>${esc(p.name)}</td><td>${esc(p.team)}</td>
+          <td>${esc(p.role.replace('_', ' ').toLowerCase())}</td>
+        </tr>`).join('') || '<tr><td colspan="3" class="muted">No players found</td></tr>';
+    } catch (e) { toast(e.message); }
+  }
+
+  async function showProfile(id) {
+    try {
+      const p = await api('/players/' + id);
+      const cell = (label, value) => `<div><span>${label}</span><b>${value}</b></div>`;
+      const box = $('playerProfile');
+      box.hidden = false;
+      box.innerHTML = `
+        <h2>${esc(p.name)}</h2>
+        <div class="muted small">${esc(p.team)} · ${esc(p.role.replace('_', ' ').toLowerCase())}</div>
+        <div class="profile-grid">
+          ${cell('Matches', p.matches)}${cell('Runs', p.runs)}${cell('Balls faced', p.ballsFaced)}
+          ${cell('Highest', p.highScore)}${cell('Fours', p.fours)}${cell('Sixes', p.sixes)}
+          ${cell('Strike rate', p.strikeRate.toFixed(1))}${cell('Average', p.average != null ? p.average.toFixed(1) : '–')}
+          ${cell('Wickets', p.wickets)}${cell('Overs bowled', p.overs)}${cell('Economy', p.economy.toFixed(2))}
+        </div>`;
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) { toast(e.message); }
+  }
+
+  function fillTeamSelects() {
+    const options = state.teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    $('team1').innerHTML = options;
+    $('team2').innerHTML = options;
+    if (state.teams.length > 1) $('team2').selectedIndex = 1;
+    $('playerTeam').innerHTML = '<option value="">All teams</option>' + options;
+  }
+
+  // ---------- wiring ----------
+
+  function bindEvents() {
+    $('matchList').addEventListener('click', ev => {
+      const card = ev.target.closest('[data-id]');
+      if (card) selectMatch(Number(card.dataset.id));
+    });
+
+    $('filters').addEventListener('click', ev => {
+      const btn = ev.target.closest('[data-filter]');
+      if (!btn) return;
+      state.filter = btn.dataset.filter;
+      document.querySelectorAll('#filters button').forEach(b => b.classList.toggle('active', b === btn));
+      renderList();
+    });
+
+    $('board').addEventListener('click', ev => {
+      const ball = ev.target.closest('[data-ball]');
+      if (ball) return sendBall(ball.dataset.ball);
+      if (ev.target.closest('[data-act="start"]')) return startMatch();
+      const tab = ev.target.closest('[data-inn]');
+      if (tab) {
+        state.activeInnings = Number(tab.dataset.inn);
+        state.pickedInnings = true;
+        renderBoard();
+      }
+    });
+    $('board').addEventListener('change', ev => {
+      if (ev.target.matches('[data-act="auto"]')) toggleAuto(ev.target.checked);
+    });
+
+    $('createForm').addEventListener('submit', createMatch);
+
+    document.querySelectorAll('.tabs button').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b === btn));
+      $('view-matches').hidden = btn.dataset.view !== 'matches';
+      $('view-players').hidden = btn.dataset.view !== 'players';
+      if (btn.dataset.view === 'players') loadPlayers();
+    }));
+
+    $('playerTeam').addEventListener('change', loadPlayers);
+    let searchTimer = null;
+    $('playerSearch').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadPlayers, 250);
+    });
+    $('playerRows').addEventListener('click', ev => {
+      const row = ev.target.closest('[data-player]');
+      if (row) showProfile(row.dataset.player);
+    });
+  }
+
+  async function init() {
+    bindEvents();
+    renderBoard();
+    try {
+      state.teams = await api('/teams');
+      fillTeamSelects();
+      await loadMatches();
+    } catch (e) {
+      toast('Could not reach the server: ' + e.message);
+    }
+    const first = state.matches.find(m => m.status === 'LIVE') || state.matches[0];
+    if (first) await selectMatch(first.id); else connectStream();
+    loadLeaderboards();
+    setInterval(loadLeaderboards, 15000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
